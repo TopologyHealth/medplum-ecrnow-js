@@ -1,0 +1,29 @@
+{
+  "name": "mp-ecrnow-bots",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "ts-node -T ./bot.mts",
+    "server": "ts-node -T ./server.mts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@medplum/core": "^1.0.4",
+    "@types/fhir": "^0.0.35",
+    "cron": "^2.1.0",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "fhirpath": "^3.3.1",
+    "node-fetch": "^3.3.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.15"
+  }
+}

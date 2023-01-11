@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "lib": [
+      "es2017",
+    ],
+    "module": "es2022",
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+  },
+  "ts-node": {
+    "esm": true
+  }
+}
