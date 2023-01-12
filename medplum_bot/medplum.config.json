@@ -1,0 +1,10 @@
+{
+    "bots": [
+      {
+        "name": "medplum-ecrnow-js-bot",
+        "id": "{{YOUR BOT ID HERE}}",
+        "source": "src/bot.mts",
+        "dist": "dist/bot.js"
+      }
+    ]
+  }

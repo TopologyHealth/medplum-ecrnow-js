@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es2017",
-    "lib": [
-      "es2017",
-    ],
+    "rootDirs": [".", "../common/src"],
+    "target": "es2018",
+    "lib": ["esnext"],
     "module": "es2022",
     "moduleResolution": "node",
+    "strict": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
   },
