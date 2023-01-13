@@ -7,6 +7,7 @@ import fetch from "node-fetch";
 import { Bundle, BundleEntry, Patient, PlanDefinitionAction, Resource, ResourceType } from '@medplum/fhirtypes';
 import * as fhirpath from 'fhirpath';
 import { v4 as uuidv4 } from 'uuid';
+import { PROJECT_TAG_CODE_SERVER, PROJECT_TAG_SYSTEM } from '../common/common.mjs';
 
 const US_PUBLIC_HEALTH_FHIR_QUERY_PATTERN_EXTENSION = "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-fhirquerypattern-extension";
 const MESSAGE_HEADER_PROFILE = "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-messageheader";
@@ -44,6 +45,8 @@ export async function buildContext(resourceType: ResourceType, resourceId: strin
    * be deleted after execution.
    */
   if (notifRes.resourceType === "Bundle") {
+    // Check that this is not a report Bundle that was created by this server
+    if (notifRes.meta?.tag?.some(v => v.system === PROJECT_TAG_SYSTEM && v.code === PROJECT_TAG_CODE_SERVER)) throw new Error("Ignoring Bundle created by this server");
     // Search for Patient in Bundle
     patient = notifRes.entry?.find((v): v is BundleEntry<Patient> => v.resource?.resourceType === "Patient")?.resource;
     if (patient === undefined) {
@@ -257,6 +260,8 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
       break;
     case "create-report": {
       // com.drajer.bsa.kar.action.MedMorphReportCreator
+      const tags = [{ system: PROJECT_TAG_SYSTEM, code: PROJECT_TAG_CODE_SERVER }];
+      if (context.workflowTag !== undefined) tags.push({ system: ECR_WORKFLOW_TAG_SYSTEM, code: context.workflowTag });
       const outputDR = actionToProcess.output?.find(v => v.type === "Bundle");
       if (outputDR === undefined) throw new Error("Output DataRequirement not defined for 'create-report' action -- stopping");
       const outBundle: Bundle = {
@@ -265,9 +270,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
         type: "message",
         meta: {
           profile: outputDR.profile,
-          tag: context.workflowTag !== undefined
-            ? [{ system: ECR_WORKFLOW_TAG_SYSTEM, code: context.workflowTag }]
-            : undefined
+          tag: tags
         },
         // TODO: timestamp
         entry: [

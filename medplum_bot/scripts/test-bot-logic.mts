@@ -34,7 +34,7 @@ async function main() {
       if (isCollectionBundle(ka_obj)) {
         console.log(`Uploading bundle at ${path}`);
         // await medplum.createResource(ka_obj);
-        await handler(medplum, { input: ka_obj, contentType: "", secrets: { ECR_SUBSCRIPTION_SERVER_URL: { valueString: "https://long-dream-6bf8.michael-jackson-222.workers.dev" } } });
+        await handler(medplum, { input: ka_obj, contentType: "", secrets: { ECR_SUBSCRIPTION_SERVER_URL: { valueString: process.env.ECR_SUBSCRIPTION_SERVER_URL } } });
       }
       console.log(`Finished processing bundle at ${path}`);
     }

@@ -10,7 +10,7 @@ import { ENDPOINT_PATH, SubNotification } from '../common/common.mjs';
 import { buildContext, performAction, Context } from './server-logic.mjs';
 
 const app = express();
-app.use(express.json({type: "application/fhir+json"}));
+app.use(express.json({type: "application/fhir+json", limit: "50mb"}));
 
 app.post(`/${ENDPOINT_PATH}`, async (req: express.Request<any, any, Resource>, res: express.Response, next) => {
   let context: Context | undefined = undefined;
@@ -21,8 +21,13 @@ app.post(`/${ENDPOINT_PATH}`, async (req: express.Request<any, any, Resource>, r
     if (pdToProcess === undefined || pdToProcess.length === 0) return res.status(500).send('Missing header "pd-to-process"');
     if (actionToProcess === undefined || actionToProcess.length === 0) return res.status(500).send('Missing header "action-to-process"');
     if (reportEndpoint === undefined || reportEndpoint.length === 0) return res.status(500).send('Missing header "report-endpoint"');
-    context = await buildContext(req.body.resourceType, req.body.id!);
-    return await performAction(decodeURIComponent(pdToProcess), actionToProcess, decodeURIComponent(reportEndpoint), context);
+    try {
+      context = await buildContext(req.body.resourceType, req.body.id!);
+    }
+    catch (error) {
+      return res.send("The Resource cannot be handled by this server -- ignoring");
+    }
+    await performAction(decodeURIComponent(pdToProcess), actionToProcess, decodeURIComponent(reportEndpoint), context);
   } catch (error) {
     console.dir(error, {depth: undefined});
     return next(error);
@@ -38,7 +43,8 @@ app.post(`/${ENDPOINT_PATH}`, async (req: express.Request<any, any, Resource>, r
       }
     }
   }
+  return res.send("Processed event without error");
 })
 
-const port = process.env.PORT || 8087;
+const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`http://localhost:${port}`));

@@ -8,6 +8,8 @@ Use the correct version of node as described in `.nvmrc`. If you have `nvm` inst
 
 To setup the Medplum CLI, copy `.env.example` to `.env` and enter your client ID and secret. You must also enter your bot's ID in `medplum.config.json`. This bot should be configured to trigger on any Bundle, which may be done by following [these instructions](https://www.medplum.com/docs/bots/bot-basics#executing-automatically-using-a-subscription)
 
+On Medplum, you'll need to set the project secret "ECR_SUBSCRIPTION_SERVER_URL" to the URL where the server at `../notification_server` is running. If running locally (using `npm run test-bot-logic`), set ECR_SUBSCRIPTION_SERVER_URL in `.env`
+
 Finally, run `npm run build-then-upload-bot` to upload the bot onto Medplum.
 
 ## Usage

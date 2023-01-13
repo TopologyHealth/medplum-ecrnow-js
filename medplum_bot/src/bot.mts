@@ -3,7 +3,7 @@
  */
 
 import { BotEvent, MedplumClient } from "@medplum/core";
-import { ENDPOINT_PATH, SubNotification } from '../../common/common.mjs';
+import { ENDPOINT_PATH, PROJECT_TAG_CODE_BOT, PROJECT_TAG_SYSTEM, SubNotification } from '../../common/common.mjs';
 import { Bundle, BundleEntry, Endpoint, PlanDefinition, Subscription, TriggerDefinition } from '@medplum/fhirtypes';
 
 // TODO: ersd_v2.json uses "http://.../us/ecr/..." for extension names
@@ -16,9 +16,6 @@ const BACKPORT_SUBSCRIPTION = "http://hl7.org/fhir/uv/subscriptions-backport/Str
 const BACKPORT_TOPIC = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-topic-canonical";
 const BACKPORT_PAYLOAD = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content";
 const BACKPORT_ADDITIONAL_CRITERIA = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-additional-criteria";
-
-export const PROJECT_TAG_SYSTEM = "http://topology.health/fhir/CodeSystem/medplum-ecrnow-js";
-export const PROJECT_TAG_CODE = "medplum-ecrnow-js-bot";
 
 function findUsPhNamedEventCriteria(trigger: TriggerDefinition): string | undefined {
   const named_ev_ext = trigger.extension?.find(v => v.url === NAMED_EVENT_EXTENSION)
@@ -163,7 +160,7 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
           id: `sub-${pd.id}-${action.id}-${trigger.id}`,
           meta: {
             profile: [BACKPORT_SUBSCRIPTION],
-            tag: [{ system: PROJECT_TAG_SYSTEM, code: PROJECT_TAG_CODE }]
+            tag: [{ system: PROJECT_TAG_SYSTEM, code: PROJECT_TAG_CODE_BOT }]
           },
           // TODO: Is this necessary?
           // extension: [{

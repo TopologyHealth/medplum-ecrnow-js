@@ -6,7 +6,7 @@ import * as dotenv from 'dotenv'
 dotenv.config()
 import { MedplumClient } from "@medplum/core";
 import fetch from "node-fetch";
-import { PROJECT_TAG_CODE, PROJECT_TAG_SYSTEM } from "../src/bot.mjs";
+import { PROJECT_TAG_CODE_BOT, PROJECT_TAG_SYSTEM } from '../../common/common.mjs';
 
 async function main() {
   if (process.env.MEDPLUM_CLIENT_ID === undefined) throw new Error("MEDPLUM_CLIENT_ID environment variable is missing");
@@ -15,7 +15,7 @@ async function main() {
   await medplum.startClientLogin(process.env.MEDPLUM_CLIENT_ID, process.env.MEDPLUM_CLIENT_SECRET);
   const existing_subscriptions = await medplum.searchResources("Subscription");
   for (const sub of existing_subscriptions) {
-    if (sub.meta?.tag?.some(v => v.system === PROJECT_TAG_SYSTEM && v.code === PROJECT_TAG_CODE)){
+    if (sub.meta?.tag?.some(v => v.system === PROJECT_TAG_SYSTEM && v.code === PROJECT_TAG_CODE_BOT)){
       await medplum.deleteResource("Subscription", sub.id!);
     }
   }
