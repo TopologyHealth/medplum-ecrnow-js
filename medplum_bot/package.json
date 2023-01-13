@@ -7,7 +7,8 @@
         "build": "esbuild src/bot.mts --bundle --platform=node --packages=external --target=node18.13 --outfile=dist/bot.js",
         "upload-bot": "medplum deploy-bot medplum-ecrnow-js-bot",
         "build-then-upload-bot": "npm run build && npm run upload-bot",
-        "manual-test": "ts-node -T ./src/manual-test.mts"
+        "test-bot-logic": "ts-node -T ./scripts/test-bot-logic.mts",
+        "reset": "ts-node -T ./scripts/delete-generated-subs.mts"
     },
     "license": "ISC",
     "dependencies": {

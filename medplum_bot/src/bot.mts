@@ -17,8 +17,8 @@ const BACKPORT_TOPIC = "http://hl7.org/fhir/uv/subscriptions-backport/StructureD
 const BACKPORT_PAYLOAD = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content";
 const BACKPORT_ADDITIONAL_CRITERIA = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-additional-criteria";
 
-const PROJECT_TAG_SYSTEM = "http://topology.health/fhir/CodeSystem/medplum-ecrnow-js";
-const PROJECT_TAG_CODE = "medplum-ecrnow-js-bot";
+export const PROJECT_TAG_SYSTEM = "http://topology.health/fhir/CodeSystem/medplum-ecrnow-js";
+export const PROJECT_TAG_CODE = "medplum-ecrnow-js-bot";
 
 function findUsPhNamedEventCriteria(trigger: TriggerDefinition): string | undefined {
   const named_ev_ext = trigger.extension?.find(v => v.url === NAMED_EVENT_EXTENSION)
@@ -150,7 +150,7 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
         // if (subscription_criteria.search(/\?/) === -1) subscription_criteria += "?" // Line 166: "HAPI expects some criteria"
 
         const notif_params: SubNotification = {
-          "pd-to-process": pd.id,
+          "pd-to-process": encodeURIComponent(pd.url),
           "action-to-process": action.id,
           "report-endpoint": encodeURIComponent(report_endpoint),
         }

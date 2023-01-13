@@ -1,3 +1,0 @@
-This project should compile the relevant source into a single .js file and upload it as a Medplum bot using the Medplum CLI. See script "build-then-upload-bot" in `package.json`
-
-The Medplum CLI expects a `.env` file in this folder with MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET set.
