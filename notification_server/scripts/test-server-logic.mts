@@ -14,10 +14,10 @@ try {
   // Testing
   let context: Context | undefined = undefined;
   try {
-    context = await buildContext("Bundle", "35bc1415-578f-4b7e-aa17-02274b4a3a0a");
+    context = await buildContext("Bundle", "b7d72ae2-3077-4c72-bb05-cc968c78b27b");
     console.log(await performAction(
       "http://hl7.org/fhir/us/central-cancer-registry-reporting/StructureDefinition/plandefinition-central-cancer-registry-reporting-example",
-      "start-workflow", "http://long-dream-6bf8.michael-jackson-222.workers.dev", context));
+      "start-workflow", "http://20.84.81.240:8080/r4/fhir/$process-message", context));
   }
   catch (error) {
     throw error;

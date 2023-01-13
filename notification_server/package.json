@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "ts-node -T ./server.mts",
-    "test-server-logic": "ts-node -T ./scripts/test-server-logic.mts"
+    "test-server-logic": "ts-node -T ./scripts/test-server-logic.mts",
+    "test-workflow": "ts-node -T ./scripts/test-workflow.mts"
   },
   "keywords": [],
   "author": "",

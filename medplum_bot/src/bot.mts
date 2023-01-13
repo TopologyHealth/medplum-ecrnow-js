@@ -100,6 +100,8 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
     if (entry.resource === undefined || !("url" in entry.resource) || entry.resource.url === undefined) continue;
     switch (entry.resource.resourceType) {
       case "ValueSet":
+        const existing = await medplum.searchOne("ValueSet", `url=${entry.resource.url}`);
+        if (existing) await medplum.deleteResource("ValueSet", existing.id!);
         await medplum.createResourceIfNoneExist(entry.resource, `url=${entry.resource.url}`);
         break;
       case "Library":
@@ -137,6 +139,8 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
     }
     else continue;
 
+    const existing = await medplum.searchOne("PlanDefinition", `url=${pd.url}`);
+    if (existing) await medplum.deleteResource("PlanDefinition", existing.id!);
     await medplum.createResourceIfNoneExist(pd, `url=${pd.url}`);
     // com.drajer.bsa.ehr.subscriptions.impl.SubscriptionGeneratorImpl.subscriptionsFromPlanDef
     for (const action of pd.action ?? []) {

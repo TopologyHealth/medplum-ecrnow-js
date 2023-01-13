@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const US_PUBLIC_HEALTH_FHIR_QUERY_PATTERN_EXTENSION = "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-fhirquerypattern-extension";
 const MESSAGE_HEADER_PROFILE = "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-messageheader";
+// const MESSAGE_HEADER_PROFILE = "http://hl7.org/fhir/us/cancer-reporting/StructureDefinition/us-pathology-message-header";
 const CONTENT_BUNDLE_PROFILE = "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-content-bundle";
 const MESSAGE_TYPE = "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-messageheader-message-types";
 const NAMED_EVENT_URL = "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents";
@@ -192,7 +193,6 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
       }
     }
   }
-  console.log(`Built inputs [${Object.keys(actionInputs).join(', ')}] for action`);
 
   // Check all conditions, quitting if any are false
   if (actionToProcess.condition !== undefined) {
@@ -275,7 +275,8 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
             resource: {
               resourceType: "MessageHeader",
               meta: {
-                profile: [ MESSAGE_HEADER_PROFILE ]
+                profile: [ MESSAGE_HEADER_PROFILE ],
+                tag: [{ system: "http://topology.health/fhir/testsystem", code: "medplum-ecrnow-js-server" }]
               },
               extension: [{
                 url: "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-report-initiation-type",
@@ -343,7 +344,10 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
       if (reportToSubmit === undefined) {
         throw new Error("Could not find report to submit");
       }
-      console.dir(await fetch(
+
+      if (reportToSubmit?.meta?.profile !== undefined) reportToSubmit.meta.profile = undefined; // Profile here is CAP endpoint to return error
+
+      const response = await fetch(
         reportEndpoint, {
           method: "POST",
           body: JSON.stringify(reportToSubmit),
@@ -351,7 +355,8 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
             'Content-Type': 'application/fhir+json',
             'Authorization': `Bearer ${process.env.ENDPOINT_AUTH}`,
           },
-        }), {depth: undefined});
+        });
+      console.dir(await response.json(), {depth: undefined});
       break;
     }
     case "complete-reporting":
