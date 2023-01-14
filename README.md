@@ -1,6 +1,6 @@
 # medplum-ecrnow-js
 
-Is a [MedPlum](medplum.com/) [Bot](https://www.medplum.com/docs/bots) that follows the [MedMorph](https://build.fhir.org/ig/HL7/fhir-medmorph/) Reference architecture, which defines a common standard for registry reporting for multiple use cases. 
+Is a [MedPlum](medplum.com/) [Bot](https://www.medplum.com/docs/bots) that follows the [MedMorph](https://build.fhir.org/ig/HL7/fhir-medmorph/) Reference architecture, which defines a common standard for registry reporting for multiple use cases. This bot behaves as a MedMorph 'Health Data Exchange App (HDEA)'
 
 When a FHIR [Transaction Bundle](https://www.hl7.org/fhir/bundle.html) is posted to MedPlum the bot will send a MedMorph compliant message bundle to the registry endpoint.
 
