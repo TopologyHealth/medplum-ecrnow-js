@@ -14,10 +14,12 @@ try {
   // Testing
   let context: Context | undefined = undefined;
   try {
-    context = await buildContext("Bundle", "b7d72ae2-3077-4c72-bb05-cc968c78b27b");
+    if (process.env.UPLOADED_BUNDLE_ID === undefined) throw new Error("UPLOADED_BUNDLE_ID environment variable is missing");
+    if (process.env.REPORT_ENDPOINT === undefined) throw new Error("REPORT_ENDPOINT environment variable is missing");
+    context = await buildContext("Bundle", process.env.UPLOADED_BUNDLE_ID);
     console.log(await performAction(
       "http://hl7.org/fhir/us/central-cancer-registry-reporting/StructureDefinition/plandefinition-central-cancer-registry-reporting-example",
-      "start-workflow", "http://20.84.81.240:8080/r4/fhir/$process-message", context));
+      "start-workflow", process.env.REPORT_ENDPOINT, context));
   }
   catch (error) {
     throw error;

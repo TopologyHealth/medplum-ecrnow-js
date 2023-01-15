@@ -17,6 +17,7 @@ const MESSAGE_TYPE = "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-messagehe
 const NAMED_EVENT_URL = "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents";
 
 const ECR_WORKFLOW_TAG_SYSTEM = "http://topology.health/fhir/temp-tag-uuid";
+const BUNDLE_PATIENT_TAG_SYSTEM = "http://topology.health/fhir/report-bundle-patient-tag";
 
 interface UploadedResource {
   resType: ResourceType,
@@ -53,6 +54,7 @@ export async function buildContext(resourceType: ResourceType, resourceId: strin
       throw new Error("Could not find Patient");
     }
     // Upload all contained Resources to Medplum
+    const uploadedResources: UploadedResource[] = [];
     let uploadedResourceTag = uuidv4();
     function writeTag(tag: string, res: Resource) {
       if (!("meta" in res)) res.meta = {};
@@ -63,7 +65,6 @@ export async function buildContext(resourceType: ResourceType, resourceId: strin
       });
     }
     writeTag(uploadedResourceTag, patient);
-    const uploadedResources: UploadedResource[] = [];
     for (const entry of notifRes.entry ?? []) {
       if (entry.resource === undefined) continue;
       writeTag(uploadedResourceTag, entry.resource);
@@ -145,7 +146,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
   if (actionToProcess.input !== undefined) {
     for (const input of actionToProcess.input) {
       if (input.id === undefined || input.type === undefined) continue;
-      let inputQuery = '';
+      let inputQuery = '_count=100&';
       const ext = input.extension?.find(v => v.url === US_PUBLIC_HEALTH_FHIR_QUERY_PATTERN_EXTENSION);
       if (ext !== undefined) {
         let query = ext.valueString?.split('?')[1];
@@ -181,6 +182,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
         }))).join('&');
       }
       // TODO: actionInput.dateFilter
+      if (inputQuery.endsWith("&")) inputQuery = inputQuery.slice(0, -1);
       console.log(`Building input "${input.id}" with query: ${inputQuery}`);
       actionInputs[input.id] = await medplum.searchResources(input.type as ResourceType, inputQuery);
       // Manual profile filtering until Medplum support is added
@@ -260,7 +262,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
       break;
     case "create-report": {
       // com.drajer.bsa.kar.action.MedMorphReportCreator
-      const tags = [{ system: PROJECT_TAG_SYSTEM, code: PROJECT_TAG_CODE_SERVER }];
+      const tags = [{ system: PROJECT_TAG_SYSTEM, code: PROJECT_TAG_CODE_SERVER }, { system: BUNDLE_PATIENT_TAG_SYSTEM, code: context.patient.id ?? context.patient.identifier?.[0].value }];
       if (context.workflowTag !== undefined) tags.push({ system: ECR_WORKFLOW_TAG_SYSTEM, code: context.workflowTag });
       const outputDR = actionToProcess.output?.find(v => v.type === "Bundle");
       if (outputDR === undefined) throw new Error("Output DataRequirement not defined for 'create-report' action -- stopping");
@@ -279,7 +281,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
               resourceType: "MessageHeader",
               meta: {
                 profile: [ MESSAGE_HEADER_PROFILE ],
-                tag: [{ system: "http://topology.health/fhir/testsystem", code: "medplum-ecrnow-js-server" }]
+                tag: [{ system: PROJECT_TAG_SYSTEM, code: PROJECT_TAG_CODE_SERVER }]
               },
               extension: [{
                 url: "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-report-initiation-type",
@@ -326,12 +328,15 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
           }
         ] 
       }
-      await medplum.createResource(outBundle);
+      const result = await medplum.createResource(outBundle);
+      context.tempResources?.push({resType: "Bundle", id: result.id!})
+      console.log("Created temp report Bundle on Medplum:");
+      console.dir(result, {depth: undefined});
       break;
     }
     case "validate-report": {
       const reportInputId = actionToProcess.input?.find(v => v.type === "Bundle")?.id;
-      const reportToValidate = actionInputs[reportInputId!]?.[0];
+      const reportToValidate = actionInputs[reportInputId!]?.find(res => res.meta?.tag?.some(v => v.system === BUNDLE_PATIENT_TAG_SYSTEM && (v.code === (context.patient.id ?? context.patient.identifier?.[0].value))));
       if (reportToValidate === undefined) {
         throw new Error("Could not find report to validate");
       }
@@ -343,13 +348,15 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
     }
     case "submit-report": {
       const reportInputId = actionToProcess.input?.find(v => v.type === "Bundle")?.id;
-      const reportToSubmit = actionInputs[reportInputId!]?.[0];
+      const reportToSubmit = actionInputs[reportInputId!]?.find(res => res.meta?.tag?.some(v => v.system === BUNDLE_PATIENT_TAG_SYSTEM && (v.code === (context.patient.id ?? context.patient.identifier?.[0].value))));
       if (reportToSubmit === undefined) {
         throw new Error("Could not find report to submit");
       }
 
       if (reportToSubmit?.meta?.profile !== undefined) reportToSubmit.meta.profile = undefined; // Profile here is CAP endpoint to return error
 
+      console.log(`Sending the following report to endpoint ${reportEndpoint}:`);
+      console.dir(reportToSubmit, {depth: undefined});
       const response = await fetch(
         reportEndpoint, {
           method: "POST",
@@ -359,6 +366,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
             'Authorization': `Bearer ${process.env.ENDPOINT_AUTH}`,
           },
         });
+      console.log("Response from endpoint:");
       console.dir(await response.json(), {depth: undefined});
       break;
     }
