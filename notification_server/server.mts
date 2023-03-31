@@ -13,6 +13,7 @@ const app = express();
 app.use(express.json({type: "application/fhir+json", limit: "50mb"}));
 
 app.post(`/${ENDPOINT_PATH}`, async (req: express.Request<any, any, Resource>, res: express.Response, next) => {
+  // Gather all necessary Resources, like the referenced PlanDefinition into a "context" object
   let context: Context | undefined = undefined;
   try {
     const pdToProcess = req.header("pd-to-process");
@@ -27,13 +28,16 @@ app.post(`/${ENDPOINT_PATH}`, async (req: express.Request<any, any, Resource>, r
     catch (error) {
       return res.send("The Resource cannot be handled by this server -- ignoring");
     }
+
+    // Perform the PlanDefinition action with the provided context
     await performAction(decodeURIComponent(pdToProcess), actionToProcess, decodeURIComponent(reportEndpoint), context);
+
   } catch (error) {
     console.dir(error, {depth: undefined});
     return next(error);
   } finally {
+    // Delete any temporarily uploaded Resources
     if (context?.workflowTag !== undefined) {
-      // Delete all uploaded temporary Resources
       if (process.env.MEDPLUM_CLIENT_ID === undefined) throw new Error("MEDPLUM_CLIENT_ID environment variable is missing");
       if (process.env.MEDPLUM_CLIENT_SECRET === undefined) throw new Error("MEDPLUM_CLIENT_SECRET environment variable is missing");
       const medplum = new MedplumClient({ fetch: fetch });

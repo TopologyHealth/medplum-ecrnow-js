@@ -1,7 +1,8 @@
 #!/usr/bin/env -S ts-node -T
 /**
- * This script will run the Subscription creation logic of the bot for each 
- * KAR Bundle found in `KAR_FOLDER`
+ * This script will run the bot logic for each KAR Bundle found in `KAR_FOLDER`.
+ * If correctly configured, a number of Subscriptions will be created in Medplum
+ * that correspond to the KAR Bundles' contents
  */
 
 import * as dotenv from 'dotenv'

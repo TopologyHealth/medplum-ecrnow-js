@@ -17,6 +17,9 @@ const BACKPORT_TOPIC = "http://hl7.org/fhir/uv/subscriptions-backport/StructureD
 const BACKPORT_PAYLOAD = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-payload-content";
 const BACKPORT_ADDITIONAL_CRITERIA = "http://hl7.org/fhir/uv/subscriptions-backport/StructureDefinition/backport-additional-criteria";
 
+/** Return a Subscription criteria depending on the trigger's event name
+ * This is how it's done in eCRNow, and I'm not sure where these rules came from
+ */
 function findUsPhNamedEventCriteria(trigger: TriggerDefinition): string | undefined {
   const named_ev_ext = trigger.extension?.find(v => v.url === NAMED_EVENT_EXTENSION)
   if (named_ev_ext === undefined) return;
@@ -68,6 +71,7 @@ function findUsPhNamedEventCriteria(trigger: TriggerDefinition): string | undefi
   return subscription_criteria;
 }
 
+// Similar to the above function, except these cases did not come from eCRNow.
 function findCustomNamedEventCriteria(trigger: TriggerDefinition): string | undefined {
   const named_ev_ext = trigger.extension?.find(v => v.url === NAMED_EVENT_EXTENSION)
   if (named_ev_ext === undefined) return;
@@ -79,7 +83,7 @@ function findCustomNamedEventCriteria(trigger: TriggerDefinition): string | unde
 
   let subscription_criteria: string;
   switch (event_name) {
-    case "new-bundle":
+    case "new-bundle": // Trigger the Subscription when any new Bundle is uploaded to Medplum
       subscription_criteria = "Bundle";
       break;
     default:
@@ -90,9 +94,12 @@ function findCustomNamedEventCriteria(trigger: TriggerDefinition): string | unde
 
 export async function handler(medplum: MedplumClient, event: BotEvent): Promise<any> {
   const kar = event.input as Bundle;
+
+  // Only process Bundles that claim to follow profile `KAR_BUNDLE_PROFILE`
   if (kar.entry === undefined || !(kar.meta?.profile?.some(v => v === KAR_BUNDLE_PROFILE))) return;
 
-  // Upload dependencies
+  // Upload dependencies from the KAR onto Medplum
+  // ValueSets and Libraries may be referenced in the provided PlanDefinitions to help filter out relevant Resources
   for (const entry of kar.entry) {
     if (entry.resource === undefined || !("url" in entry.resource) || entry.resource.url === undefined) continue;
     switch (entry.resource.resourceType) {
@@ -102,7 +109,7 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
         await medplum.createResourceIfNoneExist(entry.resource, `url=${entry.resource.url}`);
         break;
       case "Library":
-        // TODO: Ignore?
+        // TODO: Ignore? These appear to be ignored by eCRNow
         break;
     }
   }
@@ -120,6 +127,8 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
   for (const pd of pd_list) {
     if (pd.id === undefined || pd.url === undefined) continue;
 
+    // Determine where to send the final report once the entire workflow is completed
+    // This value is passed to the notification server through a header (see below)
     let report_endpoint: string;
     const receiver_address_ext = pd.extension?.find(v => v.url === RECEIVER_ADDRESS_URL);
     if (receiver_address_ext === undefined) continue;
@@ -136,14 +145,18 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
     }
     else continue;
 
+    // Upload this PlanDefinition to Medplum so that the notification server may read it to determine the workflow
     const existing = await medplum.searchOne("PlanDefinition", `url=${pd.url}`);
     if (existing) await medplum.deleteResource("PlanDefinition", existing.id!);
     await medplum.createResourceIfNoneExist(pd, `url=${pd.url}`);
+
     // com.drajer.bsa.ehr.subscriptions.impl.SubscriptionGeneratorImpl.subscriptionsFromPlanDef
+    // Create Subscriptions for each relevant PD action trigger
     for (const action of pd.action ?? []) {
       // com.drajer.bsa.ehr.subscriptions.impl.SubscriptionGeneratorImpl.generateSubscription
       if (action.trigger === undefined || action.id === undefined) continue;
       for (const trigger of action.trigger) {
+        // Determine if this trigger could be represented by a Subscription
         let subscription_criteria = findUsPhNamedEventCriteria(trigger);
         if (subscription_criteria === undefined) subscription_criteria = findCustomNamedEventCriteria(trigger);
         if (subscription_criteria === undefined) continue;
@@ -159,8 +172,8 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
         const cur_subscription: Subscription = {
           id: `sub-${pd.id}-${action.id}-${trigger.id}`,
           meta: {
-            profile: [BACKPORT_SUBSCRIPTION],
-            tag: [{ system: PROJECT_TAG_SYSTEM, code: PROJECT_TAG_CODE_BOT }]
+            profile: [BACKPORT_SUBSCRIPTION], // Copied from eCRNow
+            tag: [{ system: PROJECT_TAG_SYSTEM, code: PROJECT_TAG_CODE_BOT }] // Useful for filtering Subscriptions created by the bot
           },
           // TODO: Is this necessary?
           // extension: [{
@@ -196,6 +209,7 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
         //     }],
         // };
 
+        // An extension to support more specific medication criterias
         if (subscription_criteria === "Medication") {
           (cur_subscription as any)._criteria = {
             extension: [{
@@ -223,9 +237,8 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
   // Create Subscriptions in Medplum
   console.log(`Generated ${new_subscriptions.length} new Subscription(s) from KAR:`);
   console.dir(new_subscriptions, { depth: undefined });
-  const created_subscriptions: Subscription[] = [];
   for (const sub of new_subscriptions) {
-    created_subscriptions.push(await medplum.createResource(sub));
+    await medplum.createResource(sub);
   }
 
   // END com.drajer.bsa.ehr.subscriptions.impl.SubscriptionGeneratorImpl.createSubscriptions

@@ -30,6 +30,7 @@ export interface Context {
   tempResources?: UploadedResource[]
 }
 
+// Gather required resources (see server.mts). Also uploads resources to Medplum so that we may use Medplum's FHIR search
 export async function buildContext(resourceType: ResourceType, resourceId: string): Promise<Context> {
   if (process.env.MEDPLUM_CLIENT_ID === undefined) throw new Error("MEDPLUM_CLIENT_ID environment variable is missing");
   if (process.env.MEDPLUM_CLIENT_SECRET === undefined) throw new Error("MEDPLUM_CLIENT_SECRET environment variable is missing");
@@ -53,7 +54,7 @@ export async function buildContext(resourceType: ResourceType, resourceId: strin
     if (patient === undefined) {
       throw new Error("Could not find Patient");
     }
-    // Upload all contained Resources to Medplum
+    // Upload all contained Resources to Medplum so that we may use Medplum's FHIR search
     const uploadedResources: UploadedResource[] = [];
     let uploadedResourceTag = uuidv4();
     function writeTag(tag: string, res: Resource) {
@@ -108,7 +109,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
   const pdToProcess = await medplum.searchOne("PlanDefinition", `url=${pdToProcessUrl}`);
   if (pdToProcess === undefined) throw new Error(`Could not find PlanDefinition with url ${pdToProcessUrl}`);
   
-  // Find action to execute
+  // Find action to execute (the action may be nested in another action)
   let actionToProcess: PlanDefinitionAction | undefined = undefined;
   function findAction(action: PlanDefinitionAction, actionId: string): PlanDefinitionAction | null {
     for (const subaction of action.action ?? []) {
@@ -147,6 +148,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
     for (const input of actionToProcess.input) {
       if (input.id === undefined || input.type === undefined) continue;
       let inputQuery = '_count=100&';
+
       const ext = input.extension?.find(v => v.url === US_PUBLIC_HEALTH_FHIR_QUERY_PATTERN_EXTENSION);
       if (ext !== undefined) {
         let query = ext.valueString?.split('?')[1];
@@ -181,6 +183,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
 
         }))).join('&');
       }
+
       // TODO: actionInput.dateFilter
       if (inputQuery.endsWith("&")) inputQuery = inputQuery.slice(0, -1);
       console.log(`Building input "${input.id}" with query: ${inputQuery}`);
@@ -221,6 +224,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
       // Note: Intentionally not dealing with relatedAction.offsetDuration here because
       //  it is too complicated to schedule the remaining work of this action to resume
       //  after this relatedAction
+      // Maybe a simple setTimeout will work for short offsets
       if (relatedAction.actionId !== undefined) {
         await performAction(pdToProcessUrl, relatedAction.actionId, reportEndpoint, context);
       }
@@ -228,7 +232,7 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
   }
 
   // Perform event-specific logic
-  /**
+  /** (from eCRNow)
     initiate-reporting-workflow=com.drajer.bsa.kar.action.InitiateReporting
     execute-reporting-workflow=com.drajer.bsa.kar.action.ExecuteReportingActions
     check-trigger-codes=com.drajer.bsa.kar.action.CheckTriggerCodes
