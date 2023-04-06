@@ -4,17 +4,12 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import { MedplumClient } from "@medplum/core";
 import fetch from "node-fetch";
-import { Bundle, BundleEntry, Patient, PlanDefinitionAction, Resource, ResourceType } from '@medplum/fhirtypes';
+import { Bundle, BundleEntry, Observation, Patient, PlanDefinitionAction, Resource, ResourceType } from '@medplum/fhirtypes';
 import * as fhirpath from 'fhirpath';
 import { v4 as uuidv4 } from 'uuid';
-import { PROJECT_TAG_CODE_SERVER, PROJECT_TAG_SYSTEM } from '../common/common.mjs';
+import { CONTENT_BUNDLE_PROFILE, MESSAGE_HEADER_PROFILE, MESSAGE_TYPE, NAMED_EVENT_URL, PROJECT_TAG_CODE_SERVER, PROJECT_TAG_SYSTEM } from '../common/common.mjs';
 
 const US_PUBLIC_HEALTH_FHIR_QUERY_PATTERN_EXTENSION = "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-fhirquerypattern-extension";
-const MESSAGE_HEADER_PROFILE = "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-messageheader";
-// const MESSAGE_HEADER_PROFILE = "http://hl7.org/fhir/us/cancer-reporting/StructureDefinition/us-pathology-message-header";
-const CONTENT_BUNDLE_PROFILE = "http://hl7.org/fhir/us/medmorph/StructureDefinition/us-ph-content-bundle";
-const MESSAGE_TYPE = "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-messageheader-message-types";
-const NAMED_EVENT_URL = "http://hl7.org/fhir/us/medmorph/CodeSystem/us-ph-triggerdefinition-namedevents";
 
 const ECR_WORKFLOW_TAG_SYSTEM = "http://topology.health/fhir/temp-tag-uuid";
 const BUNDLE_PATIENT_TAG_SYSTEM = "http://topology.health/fhir/report-bundle-patient-tag";
@@ -270,6 +265,22 @@ export async function performAction(pdToProcessUrl: string, actionId: string, re
       if (context.workflowTag !== undefined) tags.push({ system: ECR_WORKFLOW_TAG_SYSTEM, code: context.workflowTag });
       const outputDR = actionToProcess.output?.find(v => v.type === "Bundle");
       if (outputDR === undefined) throw new Error("Output DataRequirement not defined for 'create-report' action -- stopping");
+
+      /** We must also send any Observations that were referenced in the DiagnosticReport to the final endpoint
+       * We will build the list of Observations here
+       */
+      const referencedObs: Observation[] = [];
+      for (const inputList of Object.values(actionInputs)) {
+        for (const input of inputList ?? []) {
+          if (input.resourceType === "DiagnosticReport") {
+            for (const result of input.result ?? []) {
+              continue;
+            }
+          }
+        }
+      }
+
+
       const outBundle: Bundle = {
         id: outputDR.id,
         resourceType: "Bundle",
