@@ -26,6 +26,7 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
     // TODO: timestamp
     entry: [
       {
+        fullUrl: "urn:uuid:07a76e52-0668-464a-a0c3-2b6ba22cebfc",
         resource: {
           resourceType: "MessageHeader",
           meta: {
@@ -65,6 +66,7 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
         }
       },
       {
+        fullUrl: "urn:uuid:ce4c68d9-abca-427e-a62b-4f8a5c1ed6f0",
         resource: {
           resourceType: "Bundle",
           type: "collection",
