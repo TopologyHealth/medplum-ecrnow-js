@@ -6,6 +6,7 @@ import { BotEvent, MedplumClient } from "@medplum/core";
 import { CONTENT_BUNDLE_PROFILE, MESSAGE_HEADER_PROFILE, MESSAGE_TYPE, NAMED_EVENT_URL, PROJECT_TAG_CODE_MEDMORPH_DEMO, PROJECT_TAG_CODE_SERVER, PROJECT_TAG_SYSTEM } from '../../common/common.mjs';
 import { Bundle } from '@medplum/fhirtypes';
 import fetch from "node-fetch";
+import { randomUUID } from 'crypto';
 
 export async function handler(medplum: MedplumClient, event: BotEvent): Promise<any> {
   const transaction = event.input as Bundle;
@@ -26,7 +27,7 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
     // TODO: timestamp
     entry: [
       {
-        fullUrl: "urn:uuid:07a76e52-0668-464a-a0c3-2b6ba22cebfc",
+        fullUrl: `urn:uuid:${randomUUID()}`,
         resource: {
           resourceType: "MessageHeader",
           meta: {
@@ -66,7 +67,7 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
         }
       },
       {
-        fullUrl: "urn:uuid:ce4c68d9-abca-427e-a62b-4f8a5c1ed6f0",
+        fullUrl: `urn:uuid:${randomUUID()}`,
         resource: {
           resourceType: "Bundle",
           type: "collection",
