@@ -33,6 +33,9 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
     return;
   }
 
+  // Collect all Patient, Practitioner, PractitionerRole, ServiceRequest, and Organization Resources
+  const collectedEntries = transaction.entry.filter(entry => ["Patient", "Practitioner", "PractitionerRole", "ServiceRequest", "Organization"].includes(entry.resource?.resourceType ?? ""));
+
   // Create a collection Bundle per DiagnosticReport
   const reportCollections: BundleEntry<Bundle>[] = [];
   for (const report of diagnosticReports) {
@@ -43,21 +46,8 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
       entry: [],
     }
 
-    // Add referenced Patient to collection Bundle
-    let patientReference = report.resource.subject?.reference;
-    if (patientReference?.startsWith("Patient/")) {
-      patientReference = patientReference.slice(8);
-    }
-    if (patientReference !== undefined) {
-      const foundPatient = transaction.entry.find(entry => entry.resource?.resourceType === "Patient" && entry.resource.identifier?.some(idt => idt.value === patientReference));
-      if (foundPatient !== undefined) {
-        collectionBundle.entry?.push(foundPatient);
-      }
-    }
-
-    // Find referenced Observations and Practitioners
+    // Find referenced Observations
     const observationEntries: BundleEntry<Observation>[] = [];
-    const practitionerReferences: string[] = [];
     for (const result of report.resource.result ?? []) {
       const foundObservation = transaction.entry.find((entry): entry is BundleEntryExisting<Observation> =>
         entry.resource?.resourceType === "Observation"
@@ -66,27 +56,10 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
       );
       if (foundObservation !== undefined) {
         observationEntries.push(foundObservation);
-        for (const performer of foundObservation.resource.performer ?? []) {
-          if (performer.reference !== undefined && performer.reference.startsWith("Practitioner/")) {
-            const referenceId = performer.reference.slice(13);
-            if (!practitionerReferences.includes(referenceId)) {
-              practitionerReferences.push(referenceId);
-            }
-          }
-        }
       }
     }
 
-    // Add referenced Practitioners to collection Bundle
-    for (const practitionerReference of practitionerReferences) {
-      const foundPractitioner = transaction.entry.find(entry =>
-        entry.resource?.resourceType === "Practitioner"
-        && entry.resource.identifier?.some(idt => idt.value === practitionerReference)
-      );
-      if (foundPractitioner !== undefined) {
-        collectionBundle.entry?.push(foundPractitioner);
-      }
-    }
+    collectionBundle.entry?.push(...collectedEntries);
 
     // Add DiagnosticReport to collection Bundle
     collectionBundle.entry?.push(report);
