@@ -10,6 +10,12 @@ import { randomUUID } from 'crypto';
 
 const MESSAGE_HEADER_FULLURL = "urn:uuid:07a76e52-0668-464a-a0c3-2b6ba22cebfc";
 
+const DIAGNOSTIC_REPORT_TO_FULLURL: { [fullUrl: string]: string } = {
+  "DiagnosticReportColorectalBx": "urn:uuid:d887770c-0d42-4e32-b294-626544a1dc77",
+  "Inline-Instance-for-undefined-4": "urn:uuid:f753d256-b75c-4f66-a47d-b7de6ca0fdab",
+  "ColorectalBMKDiagnosticReport": "urn:uuid:4a962f88-8f46-45db-853e-ace5e042cb6d"
+}
+
 interface BundleEntryExisting<T extends Resource = Resource> extends BundleEntry<T> {
   resource: NonNullable<BundleEntry<T>["resource"]>
 }
@@ -66,9 +72,17 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
 
     // Add referenced Observations to collection Bundle
     collectionBundle.entry?.push(...observationEntries);
-    
+
+    let collectionFullUrl;
+    if (report.resource.id !== undefined && report.resource.id in DIAGNOSTIC_REPORT_TO_FULLURL) {
+      collectionFullUrl = DIAGNOSTIC_REPORT_TO_FULLURL[report.resource.id];
+    }
+    else {
+      collectionFullUrl = `urn:uuid:${randomUUID}`;
+    }
+
     reportCollections.push({
-      fullUrl: `urn:uuid:${randomUUID()}`,
+      fullUrl: collectionFullUrl,
       resource: collectionBundle
     });
   }
