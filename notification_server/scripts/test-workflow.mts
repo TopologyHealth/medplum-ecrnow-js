@@ -29,6 +29,7 @@ async function main() {
     const res_paths = readdirSync(INPUT_FOLDER).map(file => path.join(INPUT_FOLDER, file));
     console.log(res_paths);
     for (const path of res_paths) {
+      if (!path.endsWith('.json')) continue;
       const res_obj = JSON.parse(readFileSync(path).toString())
       console.log(`Uploading Resource at ${path}`);
       await medplum.createResource(res_obj);

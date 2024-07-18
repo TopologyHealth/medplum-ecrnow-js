@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto';
 
 const MESSAGE_HEADER_FULLURL = "urn:uuid:07a76e52-0668-464a-a0c3-2b6ba22cebfc";
 
-const DIAGNOSTIC_REPORT_TO_FULLURL: { [fullUrl: string]: string } = {
+const DIAGNOSTIC_REPORT_TO_FULLURL: { [drId: string]: string } = {
   "DiagnosticReportColorectalBx": "urn:uuid:d887770c-0d42-4e32-b294-626544a1dc77",
   "Inline-Instance-for-undefined-4": "urn:uuid:f753d256-b75c-4f66-a47d-b7de6ca0fdab",
   "ColorectalBMKDiagnosticReport": "urn:uuid:4a962f88-8f46-45db-853e-ace5e042cb6d"

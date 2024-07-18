@@ -34,8 +34,8 @@ async function main() {
       console.log(`Processing bundle at ${path}`);
       if (isCollectionBundle(ka_obj)) {
         console.log(`Uploading bundle at ${path}`);
-        // await medplum.createResource(ka_obj);
-        await handler(medplum, { input: ka_obj, contentType: "", secrets: { ECR_SUBSCRIPTION_SERVER_URL: { valueString: process.env.ECR_SUBSCRIPTION_SERVER_URL } } });
+        await medplum.createResource(ka_obj);
+        // await handler(medplum, { input: ka_obj, contentType: "", secrets: { ECR_SUBSCRIPTION_SERVER_URL: { valueString: process.env.ECR_SUBSCRIPTION_SERVER_URL } } });
       }
       console.log(`Finished processing bundle at ${path}`);
     }
